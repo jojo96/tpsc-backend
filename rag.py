@@ -1,16 +1,21 @@
 from langchain_groq import ChatGroq
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 CHROMA_PATH = "chroma_db"
 
 def get_rag_chain():
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="sentence-transformers/all-MiniLM-L6-v2",
+        huggingfacehub_api_token=os.getenv("HF_TOKEN")
+    )
+
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
     retriever = db.as_retriever(search_kwargs={"k": 4})
 
@@ -36,6 +41,3 @@ Question: {question}
 def ask(question: str) -> str:
     chain = get_rag_chain()
     return chain.invoke(question)
-
-if __name__ == "__main__":
-    print(ask("What is the Sixth Schedule of the Indian Constitution?"))

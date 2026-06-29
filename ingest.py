@@ -1,7 +1,9 @@
+from dotenv import load_dotenv
+load_dotenv()
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_chroma import Chroma
 import os
 
 CHROMA_PATH = "chroma_db"
@@ -20,8 +22,9 @@ def ingest_pdfs(pdf_folder: str):
     chunks = splitter.split_documents(docs)
     print(f"Created {len(chunks)} chunks from {len(docs)} pages")
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"  # free, runs locally, fast
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="sentence-transformers/all-MiniLM-L6-v2",
+        huggingfacehub_api_token=os.getenv("HF_TOKEN")
     )
 
     db = Chroma.from_documents(
@@ -32,4 +35,4 @@ def ingest_pdfs(pdf_folder: str):
     print(f"Stored in ChromaDB at {CHROMA_PATH}")
 
 if __name__ == "__main__":
-    ingest_pdfs("./pdfs")  # put your TPSC syllabus PDFs here
+    ingest_pdfs("./pdfs")
