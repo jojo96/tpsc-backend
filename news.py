@@ -1,30 +1,31 @@
 import feedparser
-from newspaper import Article
+import httpx
+from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-import json, re
+import json, re, os
 
 load_dotenv()
 
 RSS_FEEDS = [
     "https://timesofindia.indiatimes.com/rss/topstories",
     "https://www.thehindu.com/news/national/?service=rss",
-    "https://indianexpress.com/feed/",
 ]
 
 def fetch_articles(max_articles=5):
     articles = []
     for feed_url in RSS_FEEDS:
         feed = feedparser.parse(feed_url)
-        for entry in feed.entries[:2]:
+        for entry in feed.entries[:3]:
             try:
-                article = Article(entry.link)
-                article.download()
-                article.parse()
-                if len(article.text) > 200:
+                res = httpx.get(entry.link, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+                soup = BeautifulSoup(res.text, "html.parser")
+                paragraphs = soup.find_all("p")
+                text = " ".join([p.get_text() for p in paragraphs[:20]])
+                if len(text) > 200:
                     articles.append({
                         "title": entry.title,
-                        "text": article.text[:2000],
+                        "text": text[:2000],
                         "url": entry.link
                     })
                 if len(articles) >= max_articles:
